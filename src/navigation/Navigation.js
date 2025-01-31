@@ -5,11 +5,12 @@ import { NavigationContainer } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 // Import Screens
-import LoginScreen from "../screens/LoginScreen"; // Correct the import path
+import LoginScreen from "../screens/LoginScreen"; 
 import RegisterScreen from "../screens/RegisterScreen";
-import HomeScreen from "../screens/HomeScreen"; // Ensure HomeScreen is also correctly imported
+import HomeScreen from "../screens/HomeScreen"; 
 import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingScreen";
+import PokemonDetailScreen from "../screens/PokemonDetailScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -43,10 +44,10 @@ const TabNavigator = () => {
 const StackNavigator = () => {
   return (
     <Stack.Navigator initialRouteName="Login">
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
       <Stack.Screen name="HomeTabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="PokemonDetail" component={PokemonDetailScreen} />
     </Stack.Navigator>
   );
 };
