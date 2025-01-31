@@ -1,35 +1,69 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
+import { FlashList } from "@shopify/flash-list";
 
 const HomeScreen = ({ navigation }) => {
-  const [pokemons, setPokemons] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPokemons = async () => {
-      try {
-        const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=20");
-        const data = await response.json();
-        
-        const pokemonDetails = await Promise.all(
-          data.results.map(async (pokemon) => {
-            const res = await fetch(pokemon.url);
-            return await res.json();
-          })
-        );
+    fetchProductDetail(page); // Fetch data when page changes
+  }, [page]);
 
-        setPokemons(pokemonDetails);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setLoading(false);
+  const fetchProductDetail = async (page) => {
+    if (!hasMore && page > 1) return; // Exit if no more data is available
+
+    setLoading(true); // Start loading
+
+    try {
+      const limit = 10;
+      const offset = (page - 1) * limit; // Calculate offset based on page number
+      const response = await fetch(
+        `https://fakestoreapi.com/products?limit=${limit}&offset=${offset}`
+      );
+      const data = await response.json();
+
+      if (data.length > 0) {
+        setProducts((prevProducts) => {
+          // Filter out duplicates before appending new data
+          const newProducts = data.filter(
+            (newItem) => !prevProducts.some((prevItem) => prevItem.id === newItem.id)
+          );
+          return [...prevProducts, ...newProducts];
+        });
+      } else {
+        setHasMore(false); // No more data available
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false); // End loading
+    }
+  };
 
-    fetchPokemons();
-  }, []);
+  const handleNextPage = () => {
+    if (hasMore && !loading) {
+      setPage((prevPage) => prevPage + 1); // Increment page number
+    }
+  };
 
-  if (loading) {
+  const handlePreviousPage = () => {
+    if (page > 1 && !loading) {
+      setPage((prevPage) => prevPage - 1); // Decrement page number
+    }
+  };
+
+  if (loading && page === 1) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#ff6347" />
@@ -39,26 +73,53 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={pokemons}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.card} 
-            onPress={() => navigation.navigate("PokemonDetail", { pokemonData: item })}
-          >
-            <Image 
-              source={{ uri: item.sprites.front_default }} 
-              style={styles.image} 
-            />
-            <Text style={styles.name}>{item.name.toUpperCase()}</Text>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+      <FlashList
+  data={products}
+  keyExtractor={(item) => `${item.id}-${page}`} // Combine id and page number to ensure uniqueness
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("ProductDetail", { productId: item })}
+    >
+      <Image source={{ uri: item.image }} style={styles.image} />
+      <Text style={styles.name}>{item.title}</Text>
+      <Text style={styles.price}>${item.price}</Text>
+    </TouchableOpacity>
+  )}
+  estimatedItemSize={327} // Add estimatedItemSize
+  contentContainerStyle={{ paddingBottom: 20 }}
+/>
+      {/* Pagination Buttons */}
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          style={[styles.button, page === 1 && styles.disabledButton]}
+          onPress={handlePreviousPage}
+          disabled={page === 1 || loading}
+        >
+          <Text style={styles.buttonText}>Previous</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.pageText}>Page {page}</Text>
+
+        <TouchableOpacity
+          style={[styles.button, !hasMore && styles.disabledButton]}
+          onPress={handleNextPage}
+          disabled={!hasMore || loading}
+        >
+          <Text style={styles.buttonText}>Next</Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ff6347" />
+        </View>
+      )}
     </View>
   );
 };
+
+const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
@@ -85,12 +146,47 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   image: {
-    width: 100,
-    height: 100,
+    width: width * 0.5,
+    height: 200, // Adjusted height for better display
     marginBottom: 10,
+    resizeMode: "contain",
   },
   name: {
-    fontSize: 20,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  price: {
+    fontSize: 16,
+    color: "#ff6347",
+    fontWeight: "bold",
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    backgroundColor: "#fff",
+  },
+  button: {
+    padding: 10,
+    backgroundColor: "#ff6347",
+    borderRadius: 5,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  pageText: {
+    fontSize: 16,
     fontWeight: "bold",
     color: "#333",
   },

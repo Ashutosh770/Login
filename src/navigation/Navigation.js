@@ -9,8 +9,9 @@ import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import HomeScreen from "../screens/HomeScreen"; 
 import ProfileScreen from "../screens/ProfileScreen";
-import SettingsScreen from "../screens/SettingScreen";
-import PokemonDetailScreen from "../screens/PokemonDetailScreen";
+import CartScreen from "../screens/CartScreen";
+import ProductDetailScreen from "../screens/ProductDetailScreen";
+import RecipesScreen from "../screens/RecipesScreen";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -22,20 +23,23 @@ const TabNavigator = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          if (route.name === "Home") {
-            iconName = "home";
+          if (route.name === "Product") {
+            iconName = "headset";
           } else if (route.name === "Profile") {
             iconName = "person";
-          } else if (route.name === "Settings") {
-            iconName = "settings";
+          } else if (route.name === "Cart") {
+            iconName = "cart";
+          } else if (route.name === "Recipes") {
+            iconName = "flame";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Product" component={HomeScreen} />
+      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen name="Recipes" component={RecipesScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
 };
@@ -47,7 +51,7 @@ const StackNavigator = () => {
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
       <Stack.Screen name="HomeTabs" component={TabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="PokemonDetail" component={PokemonDetailScreen} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 };
