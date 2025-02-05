@@ -9,117 +9,78 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import { useCart } from "../components/CartContext"; // Import Cart Context
 
 const HomeScreen = ({ navigation }) => {
+  const { cart, addToCart } = useCart();
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProductDetail(page); // Fetch data when page changes
+    fetchProducts(page);
   }, [page]);
 
-  const fetchProductDetail = async (page) => {
-    if (!hasMore && page > 1) return; // Exit if no more data is available
+  const fetchProducts = async (page) => {
+    if (!hasMore && page > 1) return;
 
-    setLoading(true); // Start loading
-
+    setLoading(true);
     try {
-      const limit = 10;
-      const offset = (page - 1) * limit; // Calculate offset based on page number
-      const response = await fetch(
-        `https://fakestoreapi.com/products?limit=${limit}&offset=${offset}`
-      );
+      const response = await fetch(`https://dummyjson.com/products?limit=10&skip=${(page - 1) * 10}`);
       const data = await response.json();
 
-      if (data.length > 0) {
-        setProducts((prevProducts) => {
-          // Filter out duplicates before appending new data
-          const newProducts = data.filter(
-            (newItem) => !prevProducts.some((prevItem) => prevItem.id === newItem.id)
-          );
-          return [...prevProducts, ...newProducts];
-        });
+      if (data.products.length > 0) {
+        setProducts((prevProducts) => [...prevProducts, ...data.products]);
       } else {
-        setHasMore(false); // No more data available
+        setHasMore(false);
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching products:", error);
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
-
-  const handleNextPage = () => {
-    if (hasMore && !loading) {
-      setPage((prevPage) => prevPage + 1); // Increment page number
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (page > 1 && !loading) {
-      setPage((prevPage) => prevPage - 1); // Decrement page number
-    }
-  };
-
-  if (loading && page === 1) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6347" />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <FlashList
-  data={products}
-  keyExtractor={(item) => `${item.id}-${page}`} // Combine id and page number to ensure uniqueness
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("ProductDetail", { productId: item })}
-    >
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <Text style={styles.name}>{item.title}</Text>
-      <Text style={styles.price}>${item.price}</Text>
-    </TouchableOpacity>
-  )}
-  estimatedItemSize={327} // Add estimatedItemSize
-  contentContainerStyle={{ paddingBottom: 20 }}
-/>
-      {/* Pagination Buttons */}
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity
-          style={[styles.button, page === 1 && styles.disabledButton]}
-          onPress={handlePreviousPage}
-          disabled={page === 1 || loading}
-        >
-          <Text style={styles.buttonText}>Previous</Text>
-        </TouchableOpacity>
+        data={products}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <TouchableOpacity onPress={() => navigation.navigate("ProductDetail", { productId: item })}>
+              <Image source={{ uri: item.thumbnail }} style={styles.image} />
+              <Text style={styles.name}>{item.title}</Text>
+              <Text style={styles.price}>${item.price}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, cart.some((p) => p.id === item.id) && styles.addedButton]}
+              onPress={() => addToCart(item)}
+              disabled={cart.some((p) => p.id === item.id)}
+            >
+              <Text style={styles.buttonText}>
+                {cart.some((p) => p.id === item.id) ? "Added" : "Add to Cart"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        estimatedItemSize={327}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
 
-        <Text style={styles.pageText}>Page {page}</Text>
-
-        <TouchableOpacity
-          style={[styles.button, !hasMore && styles.disabledButton]}
-          onPress={handleNextPage}
-          disabled={!hasMore || loading}
-        >
-          <Text style={styles.buttonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#ff6347" />
-        </View>
-      )}
+      {/* Cart Button */}
+      <TouchableOpacity
+        style={styles.cartButton}
+        onPress={() => navigation.navigate("CartScreen")}
+      >
+        <Text style={styles.buttonText}>Go to Cart ({cart.length})</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
@@ -127,13 +88,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     paddingTop: 20,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
     alignItems: "center",
@@ -147,8 +103,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width * 0.5,
-    height: 200, // Adjusted height for better display
-    marginBottom: 10,
+    height: 150,
     resizeMode: "contain",
   },
   name: {
@@ -162,33 +117,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#ff6347",
     fontWeight: "bold",
-  },
-  paginationContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
-    backgroundColor: "#fff",
+    marginBottom: 10,
   },
   button: {
     padding: 10,
     backgroundColor: "#ff6347",
     borderRadius: 5,
+    alignItems: "center",
+    marginTop: 10,
   },
-  disabledButton: {
-    backgroundColor: "#ccc",
+  addedButton: {
+    backgroundColor: "#28a745",
+  },
+  cartButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#007bff",
+    padding: 12,
+    borderRadius: 10,
   },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
-  },
-  pageText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
   },
 });
 
